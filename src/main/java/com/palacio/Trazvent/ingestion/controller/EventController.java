@@ -24,7 +24,7 @@ public class EventController {
             @RequestHeader(value = "x-api-key", required = false) String apiKey,
             @Valid @RequestBody EventRequest request) {
 
-        UUID projectId = apiKeyAuthService.validateAndGetProjectId(apiKey);       String generatedEventId = UUID.randomUUID().toString();
+        UUID projectId = apiKeyAuthService.validateAndGetProjectId(apiKey);
 
         UUID eventId = ingestionService.processEvent(request, projectId);
 
