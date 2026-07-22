@@ -14,7 +14,7 @@ public class AnalyticsAggregationService {
 
     private final JdbcTemplate jdbcTemplate;
 
-    @Scheduled(fixedRate = 300000)
+    @Scheduled(fixedRate = 15000)
     @Transactional
     public void aggregateEvents() {
         log.info("Starting batch aggregation process...");
