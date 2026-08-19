@@ -10,18 +10,30 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.security.core.Authentication;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {
 
-  private final AuthenticationService authenticationService;
+    private final AuthenticationService authenticationService;
 
-  // Endpoint público para iniciar sesión (Generar el Token)
-  @PostMapping("/login")
-  public ResponseEntity<AuthenticationResponse> authenticate(
-      @Valid @RequestBody AuthenticationRequest request) {
-    return ResponseEntity.ok(authenticationService.authenticate(request));
-  }
+    @PostMapping("/login")
+    public ResponseEntity<AuthenticationResponse> authenticate(
+            @Valid @RequestBody AuthenticationRequest request
+    ) {
+        return ResponseEntity.ok(authenticationService.authenticate(request));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> getMyProfile(Authentication authentication) {
+        return ResponseEntity.ok(Map.of(
+                "email", authentication.getName(),
+                "roles", authentication.getAuthorities().toString(),
+                "message", "It works!"
+        ));
+    }
 }
