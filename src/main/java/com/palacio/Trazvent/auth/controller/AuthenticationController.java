@@ -32,8 +32,7 @@ public class AuthenticationController {
     public ResponseEntity<Map<String, Object>> getMyProfile(Authentication authentication) {
         return ResponseEntity.ok(Map.of(
                 "email", authentication.getName(),
-                "roles", authentication.getAuthorities().toString(),
-                "message", "It works!"
+                "roles", authentication.getAuthorities().toString()
         ));
     }
 }
