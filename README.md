@@ -90,7 +90,7 @@ flowchart TD
     end
 
     subgraph Batch["2. Agregación Asíncrona (Cron)"]
-        Scheduler[AnalyticsAggregationService<br/>@Scheduled 15s] -->|Scan Partial Index<br/>WHERE processed = FALSE| DB_Events
+        Scheduler["AnalyticsAggregationService<br/>@Scheduled 15s"] -->|"Scan Partial Index<br/>WHERE processed = FALSE"| DB_Events
         Scheduler -->|UPSERT ON CONFLICT<br/>DO UPDATE SET count = ...| DB_Aggregates[(aggregates)]
         Scheduler -->|UPDATE processed = TRUE| DB_Events
     end
