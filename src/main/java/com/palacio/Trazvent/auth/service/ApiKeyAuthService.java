@@ -1,5 +1,6 @@
 package com.palacio.Trazvent.auth.service;
 
+import com.palacio.Trazvent.common.exception.ApiKeyError;
 import com.palacio.Trazvent.common.exception.InvalidApiKeyException;
 import com.palacio.Trazvent.project.entity.Project;
 import com.palacio.Trazvent.project.repository.ProjectRepository;
@@ -20,13 +21,13 @@ public class ApiKeyAuthService {
 
     public UUID validateAndGetProjectId(String rawApiKey) {
         if (rawApiKey == null || rawApiKey.isBlank()) {
-            throw new InvalidApiKeyException("API Key not provided in the headers.");
+            throw new InvalidApiKeyException(ApiKeyError.MISSING_KEY);
         }
 
         String hashedKey = hashApiKey(rawApiKey);
 
         Project project = projectRepository.findByApiKeyHash(hashedKey)
-                .orElseThrow(() -> new InvalidApiKeyException("Invalid API Key."));
+                .orElseThrow(() -> new InvalidApiKeyException(ApiKeyError.INVALID_KEY));
 
         return project.getId();
     }

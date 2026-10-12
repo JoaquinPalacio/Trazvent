@@ -1,39 +1,46 @@
 package com.palacio.Trazvent.common.exception;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
+import org.springframework.http.ProblemDetail;
+
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-
-        FieldError firstError = ex.getBindingResult().getFieldError();
-        String errorMessage = firstError != null ? firstError.getDefaultMessage() : "Invalid input data.";
-
-        Map<String, Object> errorResponse = new LinkedHashMap<>();
-        errorResponse.put("error", "Bad Request");
-        errorResponse.put("message", errorMessage);
-        errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-    }
-
     @ExceptionHandler(InvalidApiKeyException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidApiKey(InvalidApiKeyException ex) {
-        Map<String, Object> errorResponse = new LinkedHashMap<>();
-        errorResponse.put("error", "Unauthorized");
-        errorResponse.put("message", ex.getMessage());
-        errorResponse.put("status", HttpStatus.UNAUTHORIZED.value());
+        ApiKeyError error = ex.getError();
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(error.getStatus(), error.getMessage());
+
+        problemDetail.setTitle("Authentication Error");
+        problemDetail.setProperty("code", error.name());
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleValidationExceptions(MethodArgumentNotValidException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            "One or more validation errors occurred."
+        );
+
+        problemDetail.setTitle("Invalid Input Data");
+
+        Map<String, String> invalidFields = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(fieldError ->
+            invalidFields.put(fieldError.getField(), fieldError.getDefaultMessage())
+        );
+
+        problemDetail.setProperty("invalidFields", invalidFields);
+
+        return problemDetail;
     }
 }
