@@ -10,14 +10,17 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
 public class ApiKeyAuthService {
-
+    public static record ApiKey(String apiKeyHashed, String rawApiKey) {}
     private final ProjectRepository projectRepository;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public UUID validateAndGetProjectId(String rawApiKey) {
         if (rawApiKey == null || rawApiKey.isBlank()) {
@@ -32,6 +35,15 @@ public class ApiKeyAuthService {
         return project.getId();
     }
 
+    public ApiKey createApiKey() {
+        byte[] rawBytes = new byte[32];
+        secureRandom.nextBytes(rawBytes);
+        String rawApiKey = Base64.getUrlEncoder().withoutPadding().encodeToString(rawBytes);
+        String apiKeyHashed = hashApiKey(rawApiKey);
+
+        return new ApiKey(apiKeyHashed, rawApiKey);
+    }
+
     private String hashApiKey(String apiKey) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -41,4 +53,5 @@ public class ApiKeyAuthService {
             throw new RuntimeException("Internal error encrypting API Key", e);
         }
     }
+
 }

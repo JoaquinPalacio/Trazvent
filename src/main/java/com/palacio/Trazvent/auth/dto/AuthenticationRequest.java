@@ -1,4 +1,3 @@
-
 package com.palacio.Trazvent.auth.dto;
 
 import jakarta.validation.constraints.Email;

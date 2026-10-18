@@ -6,7 +6,8 @@ import com.palacio.Trazvent.auth.service.ApiKeyAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 import java.util.UUID;
@@ -30,7 +31,6 @@ public class EventController {
 
         return ResponseEntity.accepted().body(Map.of(
                 "eventId", eventId.toString(),
-                "message", "Event recorded."
-        ));
+                "message", "Event recorded."));
     }
 }

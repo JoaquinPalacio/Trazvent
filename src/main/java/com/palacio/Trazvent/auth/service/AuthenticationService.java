@@ -2,51 +2,99 @@ package com.palacio.Trazvent.auth.service;
 
 import com.palacio.Trazvent.auth.dto.AuthenticationRequest;
 import com.palacio.Trazvent.auth.dto.AuthenticationResponse;
+import com.palacio.Trazvent.auth.dto.RegisterRequest;
+import com.palacio.Trazvent.auth.dto.RegisterResponse;
 import com.palacio.Trazvent.auth.repository.UserRepository;
+//import com.palacio.Trazvent.auth.service.ApiKeyAuthService;
+import com.palacio.Trazvent.auth.entity.User;
+import com.palacio.Trazvent.auth.entity.Role;
+import com.palacio.Trazvent.project.entity.Project;
+import com.palacio.Trazvent.project.repository.ProjectRepository;
+import com.palacio.Trazvent.common.exception.InvalidRegisterException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
-
+import jakarta.transaction.Transactional;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
 
-  private final UserRepository repository;
-  private final JwtService jwtService;
-  // Spring Security nos provee esta clase que maneja la lógica de chequear la
-  // contraseña internamente
-  private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final ApiKeyAuthService apiKeyService;
+    private final AuthenticationManager authenticationManager;
+    private final ProjectRepository projectRepository;
+    private final PasswordEncoder passwordEncoder;
 
-  public AuthenticationResponse authenticate(AuthenticationRequest request) {
-    // 1. Esto le dice a Spring: "Ve a buscar el usuario con este email y comprueba
-    // si esta contraseña (hasheada en BCrypt) coincide."
-    // Si no coincide o no existe, lanza un BadCredentialsException automáticamente.
-    authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(
-            request.getEmail(),
-            request.getPassword()));
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()));
 
-    // 2. Si pasó la línea anterior, el usuario es 100% legítimo. Lo buscamos en la
-    // base de datos.
-    var user = repository.findByEmail(request.getEmail())
-        .orElseThrow(); // Ya sabemos que existe, por lo que esto es seguro.
+        var user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow();
 
-    // 3. (Opcional) Podemos inyectar información extra (Claims) dentro del token,
-    // como su Rol o a qué Proyecto pertenece.
-    Map<String, Object> extraClaims = new HashMap<>();
-    extraClaims.put("role", user.getRole().name());
-    extraClaims.put("projectId", user.getProjectId().toString());
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("role", user.getRole().name());
+        extraClaims.put("projectId", user.getProjectId().toString());
 
-    // 4. Generamos el token usando el servicio que hicimos antes.
-    var jwtToken = jwtService.generateToken(user.getEmail(), extraClaims);
+        var jwtToken = jwtService.generateToken(user.getEmail(), extraClaims);
 
-    // 5. Devolvemos el JSON de respuesta.
-    return AuthenticationResponse.builder()
-        .token(jwtToken)
-        .build();
-  }
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .build();
+    }
+
+    @Transactional
+    public RegisterResponse register(RegisterRequest request) {
+        String email = request.getEmail();
+        if (userRepository.existsByEmail(email)) {
+            throw new InvalidRegisterException("The provided email already exists.");
+        }
+
+        ApiKeyAuthService.ApiKey apiKey = apiKeyService.createApiKey();
+        String apiKeyHashed = apiKey.apiKeyHashed();
+        String rawApiKey = apiKey.rawApiKey();
+
+        UUID projectId = UUID.randomUUID();
+        OffsetDateTime now = OffsetDateTime.now();
+        Project project = Project.builder()
+                .id(projectId)
+                .name(request.getProject())
+                .apiKeyHash(apiKeyHashed)
+                .createdAt(now)
+                .build();
+        projectRepository.save(project);
+
+        UUID userId = UUID.randomUUID();
+        String passwordHashed = passwordEncoder.encode(request.getPassword());
+        User user = User.builder()
+                .id(userId)
+                .projectId(projectId)
+                .email(email)
+                .passwordHash(passwordHashed)
+                .role(Role.ADMIN)
+                .build();
+        userRepository.save(user);
+
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("role", "ADMIN");
+        extraClaims.put("projectId", projectId.toString());
+
+        var jwtToken = jwtService.generateToken(email, extraClaims);
+
+        return RegisterResponse.builder()
+                .token(jwtToken)
+                .apiKey(rawApiKey)
+                .email(email)
+                .build();
+    }
 }
