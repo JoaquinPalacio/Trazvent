@@ -20,7 +20,7 @@ import java.util.Base64;
 public class ApiKeyAuthService {
     public static record ApiKey(String apiKeyHashed, String rawApiKey) {}
     private final ProjectRepository projectRepository;
-    private final SecureRandom secureRandom = new SecureRandom();
+    private SecureRandom secureRandom = new SecureRandom();
 
     public UUID validateAndGetProjectId(String rawApiKey) {
         if (rawApiKey == null || rawApiKey.isBlank()) {
