@@ -5,7 +5,6 @@ import com.palacio.Trazvent.auth.dto.AuthenticationResponse;
 import com.palacio.Trazvent.auth.dto.RegisterRequest;
 import com.palacio.Trazvent.auth.dto.RegisterResponse;
 import com.palacio.Trazvent.auth.repository.UserRepository;
-//import com.palacio.Trazvent.auth.service.ApiKeyAuthService;
 import com.palacio.Trazvent.auth.entity.User;
 import com.palacio.Trazvent.auth.entity.Role;
 import com.palacio.Trazvent.project.entity.Project;
